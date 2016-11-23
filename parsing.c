@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpc.h"
@@ -20,10 +21,20 @@ long power(long base, long exp) {
     }
 }
 
-long eval_op(long x, char* op, long y) {
+long eval_op(char* op, long x,...) {
     /* Should probably refactor this to a switch/case statement */
-    if (strcmp(op, "+") == 0) { return x + y; }
-    if (strcmp(op, "-") == 0) { return x - y; }
+    va_list ap;
+
+    va_start(ap, x);
+
+    long temp = x;
+
+    if (strcmp(op, "+") == 0) {
+        for()
+    }
+    if (strcmp(op, "-") == 0) {
+
+    }
     if (strcmp(op, "*") == 0) { return x * y; }
     if (strcmp(op, "/") == 0) { return x / y; }
     if (strcmp(op, "%") == 0) { return x % y; }
@@ -47,7 +58,7 @@ long eval(mpc_ast_t* t) {
     /* Iterate remaining children and combine */
     int i = 3;
     while (strstr(t->children[i]->tag, "expr")) {
-        x = eval_op(x, op, eval(t->children[i]));
+        x = eval_op(op, x,  eval(t->children[i]));
         i++;
     }
 
