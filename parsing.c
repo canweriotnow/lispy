@@ -5,6 +5,10 @@
 #include <editline/readline.h>
 #include <editline/history.h>
 
+/*
+   Write our own integer exponentiation function - the power
+   functions in math.h only handle doubles and floats.
+*/
 long power(long base, long exp) {
     if (exp == 0)
         return 1;
@@ -17,6 +21,7 @@ long power(long base, long exp) {
 }
 
 long eval_op(long x, char* op, long y) {
+    /* Should probably refactor this to a switch/case statement */
     if (strcmp(op, "+") == 0) { return x + y; }
     if (strcmp(op, "-") == 0) { return x - y; }
     if (strcmp(op, "*") == 0) { return x * y; }
@@ -42,7 +47,7 @@ long eval(mpc_ast_t* t) {
     /* Iterate remaining children and combine */
     int i = 3;
     while (strstr(t->children[i]->tag, "expr")) {
-        x= eval_op(x, op, eval(t->children[i]));
+        x = eval_op(x, op, eval(t->children[i]));
         i++;
     }
 
@@ -68,7 +73,7 @@ int main(int argc, char** argv) {
               Number, Operator, Expr, Lispy);
 
     /* Print version and exit info */
-    puts("Lispy Version 0.0.0.0.1");
+    puts("Lispy Version 0.0.2");
     puts("Press Ctrl+c to Exit\n");
 
     /* loop */
