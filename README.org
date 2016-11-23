@@ -1,0 +1,6 @@
+#+TITLE: Lispy
+#+AUTHOR: Jason Lewis
+#+EMAIL: jason@decomplecting.org
+
+Lispy - a toy Lisp, written in C, following allowing with
+[[http://www.buildyourownlisp.com/][Build Your Own Lisp]] by Daniel Holden
