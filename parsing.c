@@ -5,11 +5,24 @@
 #include <editline/readline.h>
 #include <editline/history.h>
 
+long power(long base, long exp) {
+    if (exp == 0)
+        return 1;
+    else if (exp % 2)
+        return base * power(base, exp - 1);
+    else {
+        long temp = power(base, exp / 2);
+        return temp * temp;
+    }
+}
+
 long eval_op(long x, char* op, long y) {
     if (strcmp(op, "+") == 0) { return x + y; }
     if (strcmp(op, "-") == 0) { return x - y; }
     if (strcmp(op, "*") == 0) { return x * y; }
     if (strcmp(op, "/") == 0) { return x / y; }
+    if (strcmp(op, "%") == 0) { return x % y; }
+    if (strcmp(op, "^") == 0) { return power(x, y); }
 
     return 0;
 }
@@ -48,7 +61,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
     "                                                   \
      number   : /-?[0-9]+/ ;                                      \
-     operator : '+' | '-' | '*' | '/' ;                 \
+     operator : '+' | '-' | '*' | '/' | '%' | '^';                 \
      expr     : <number> | '(' <operator> <expr>+ ')' ; \
      lispy    : /^/ <operator> <expr>+ /$/ ;            \
     ",
