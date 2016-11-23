@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
         } else {
             /* Otherwise print and delete Error */
             mpc_err_print(r.error);
-            mpc_err_print(r.error);
+            mpc_err_delete(r.error);
         }
 
         /* Echo input back yo user */
