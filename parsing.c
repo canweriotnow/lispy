@@ -5,6 +5,63 @@
 #include <editline/readline.h>
 #include <editline/history.h>
 
+/* Define Lisp value type */
+typedef struct {
+    int type;
+    long num;
+    int err;
+} lval;
+
+/* Create enum of poss. lval types */
+enum { LVAL_NUM, LVAL_ERR };
+
+/* Create enum of poss. error types */
+enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+
+/* Create a new number type lval */
+lval lval_num(long x) {
+    lval v;
+    v.type = LVAL_NUM;
+    v.num = x;
+    return v;
+}
+
+/* Error type lval */
+lval lval_err(int x) {
+    lval v;
+    v.type = LVAL_ERR;
+    v.err = x;
+    return v;
+}
+
+/* Print an lval */
+void lval_print(lval v) {
+    switch (v.type) {
+    /* Print if it's a number */
+    case LVAL_NUM: printf("%li", v.num); break;
+
+    /* And for errors... */
+    case LVAL_ERR:
+        /* Check error type */
+        if (v.err == LERR_DIV_ZERO) {
+            printf("Error: Division By Zero!");
+        }
+        if (v.err == LERR_BAD_OP) {
+            printf("Error: Invalid Operator!");
+        }
+        if (v.err == LERR_BAD_NUM) {
+            printf("Error: Invalid Number!");
+        }
+        break;
+    }
+}
+
+/* For prettiness sake... */
+void lval_println(lval v) {
+    lval_print(v); putchar('\n');
+}
+
+
 /*
    Write our own integer exponentiation function - the power
    functions in math.h only handle doubles and floats.
@@ -20,29 +77,41 @@ long power(long base, long exp) {
     }
 }
 
-long eval_op(long x, char* op, long y) {
-    /* Should probably refactor this to a switch/case statement */
-    if (strcmp(op, "+") == 0) { return x + y; }
-    if (strcmp(op, "-") == 0) { return x - y; }
-    if (strcmp(op, "*") == 0) { return x * y; }
-    if (strcmp(op, "/") == 0) { return x / y; }
-    if (strcmp(op, "%") == 0) { return x % y; }
-    if (strcmp(op, "^") == 0) { return power(x, y); }
+lval eval_op(lval x, char* op, lval y) {
 
-    return 0;
+    /* If either value is an error return it */
+    if (x.type == LVAL_ERR) { return x; }
+    if (y.type == LVAL_ERR) { return y; }
+
+    /* Else do maths on number values */
+    if (strcmp(op, "+") == 0) { return lval_num(x.num + y.num); }
+    if (strcmp(op, "-") == 0) { return lval_num(x.num - y.num); }
+    if (strcmp(op, "*") == 0) { return lval_num(x.num * y.num); }
+    if (strcmp(op, "/") == 0) {
+        /* If 2nd arg is 0 then error */
+        return y.num == 0
+            ? lval_err(LERR_DIV_ZERO)
+            : lval_num(x.num / y.num);
+    }
+
+    if (strcmp(op, "%") == 0) { return lval_num(x.num % y.num); }
+    if (strcmp(op, "^") == 0) { return lval_num(power(x.num, y.num)); }
+
+    return lval_err(LERR_BAD_OP);
 }
 
-long eval(mpc_ast_t* t) {
+lval eval(mpc_ast_t* t) {
     /* If tagged as numeric return directly */
     if (strstr(t->tag, "number")) {
-        return atoi(t->contents);
+        /* Check conversion error */
+        errno = 0;
+        long x = strtol(t->contents, NULL, 10);
+        return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
     }
 
     /* op is 2nd child */
     char* op = t->children[1]->contents;
-
-    /* Store 3rd ch in `x` */
-    long x = eval(t->children[2]);
+    lval x = eval(t->children[2]);
 
     /* Iterate remaining children and combine */
     int i = 3;
@@ -85,8 +154,8 @@ int main(int argc, char** argv) {
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
             /* On success print and delete the AST */
-            long result = eval(r.output);
-            printf("%li\n", result);
+            lval result = eval(r.output);
+            lval_println(result);
             mpc_ast_delete(r.output);
 
         } else {
