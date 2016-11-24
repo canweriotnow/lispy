@@ -290,12 +290,21 @@ lval* builtin_join(lval* a) {
     return x;
 }
 
+lval* builtin_len(lval* a) {
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+            "Function 'len' passed incorrect type");
+
+    lval* x = lval_num(a->cell[0]->count);
+    return x;
+}
+
 lval* builtin(lval* a, char* func) {
     if (strcmp("list", func) == 0 )   { return builtin_list(a); }
     if (strcmp("head", func) == 0 )   { return builtin_head(a); }
     if (strcmp("tail", func) == 0 )   { return builtin_tail(a); }
     if (strcmp("join", func) == 0 )   { return builtin_join(a); }
     if (strcmp("eval", func) == 0 )   { return builtin_eval(a); }
+    if (strcmp("len", func) == 0)     { return builtin_len(a); }
     if (strstr("+-*/%^", func))       { return builtin_op(a, func); }
 
     lval_del(a);
@@ -388,9 +397,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
     "                                                     \
      number   : /-?[0-9]+/ ;                              \
-     symbol   : \"list\" | \"head\" | \"tail\" | \"eval\" \
-                | \"join\" | '+' | '-' | '*' | '/'        \
-                | '%' | '^';                              \
+     symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;        \
      sexpr    : '(' <expr>* ')' ;                         \
      qexpr    : '{' <expr>* '}' ;                         \
      expr     : <number> | <symbol> | <sexpr> | <qexpr> ; \
