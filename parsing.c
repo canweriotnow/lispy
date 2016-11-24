@@ -1,25 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "lib/mpc.h"
+#include "lib/util.h"
 
 #include <editline/readline.h>
 #include <editline/history.h>
 
-/* Some math help here */
-/*
-  Write our own integer exponentiation function - the power
-  functions in math.h only handle doubles and floats.
-*/
-long power(long base, long exp) {
-    if (exp == 0)
-        return 1;
-    else if (exp % 2)
-        return base * power(base, exp - 1);
-    else {
-        long temp = power(base, exp / 2);
-        return temp * temp;
-    }
-}
+
 
 /* Create enum of poss. lval types */
 enum { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR };
@@ -164,7 +151,7 @@ lval* builtin_op(lval* a, char* op) {
 
     /* Ensure all args anre numbers */
     for (int i = 0; i < a->count; i++) {
-        if (a->cell[i]->type !- LVAL_NUM) {
+        if (a->cell[i]->type != LVAL_NUM) {
             lval_del(a);
             return lval_err("Cannot operate on non-number!");
         }
@@ -279,53 +266,6 @@ lval* lval_read(mpc_ast_t* t) {
 }
 
 
-lval eval_op(lval x, char* op, lval y) {
-
-    /* If either value is an error return it */
-    if (x.type == LVAL_ERR) { return x; }
-    if (y.type == LVAL_ERR) { return y; }
-
-    /* Else do maths on number values */
-    if (strcmp(op, "+") == 0) { return lval_num(x.num + y.num); }
-    if (strcmp(op, "-") == 0) { return lval_num(x.num - y.num); }
-    if (strcmp(op, "*") == 0) { return lval_num(x.num * y.num); }
-    if (strcmp(op, "/") == 0) {
-        /* If 2nd arg is 0 then error */
-        return y.num == 0
-            ? lval_err(LERR_DIV_ZERO)
-            : lval_num(x.num / y.num);
-    }
-
-    if (strcmp(op, "%") == 0) { return lval_num(x.num % y.num); }
-    if (strcmp(op, "^") == 0) { return lval_num(power(x.num, y.num)); }
-
-    return lval_err(LERR_BAD_OP);
-}
-
-lval eval(mpc_ast_t* t) {
-    /* If tagged as numeric return directly */
-    if (strstr(t->tag, "number")) {
-        /* Check conversion error */
-        errno = 0;
-        long x = strtol(t->contents, NULL, 10);
-        return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
-    }
-
-    /* op is 2nd child */
-    char* op = t->children[1]->contents;
-    lval x = eval(t->children[2]);
-
-    /* Iterate remaining children and combine */
-    int i = 3;
-    while (strstr(t->children[i]->tag, "expr")) {
-        x = eval_op(x, op, eval(t->children[i]));
-        i++;
-    }
-
-    return x;
-}
-
-
 int main(int argc, char** argv) {
     /* Create Some Parsers */
     mpc_parser_t* Number    = mpc_new("number");
@@ -338,15 +278,15 @@ int main(int argc, char** argv) {
     mpca_lang(MPCA_LANG_DEFAULT,
     "                                                   \
      number   : /-?[0-9]+/ ;                            \
-     operator : '+' | '-' | '*' | '/' | '%' | '^';      \
-     sexpr    : '(' <expr>* ')'                         \
+     symbol : '+' | '-' | '*' | '/' | '%' | '^';      \
+     sexpr    : '(' <expr>* ')' ;                       \
      expr     : <number> | <symbol> | <sexpr>;          \
      lispy    : /^/ <expr>* /$/ ;                       \
     ",
               Number, Symbol, Sexpr, Expr, Lispy);
 
     /* Print version and exit info */
-    puts("Lispy Version 0.0.2");
+    puts("Lispy Version 0.0.5");
     puts("Press Ctrl+c to Exit\n");
 
     /* loop */
@@ -358,8 +298,8 @@ int main(int argc, char** argv) {
         mpc_result_t r;
         if (mpc_parse("<stdin>", input, Lispy, &r)) {
             /* On success print and delete the AST */
-            lval result = eval(r.output);
-            lval_println(result);
+            lval* x = lval_eval(lval_read(r.output));
+            lval_println(x);
             mpc_ast_delete(r.output);
 
         } else {
