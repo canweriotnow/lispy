@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "lib/mpc.h"
-#include "lib/util.h"
+#include "mpc.h"
+#include "util.h"
 
 #include <editline/readline.h>
 #include <editline/history.h>

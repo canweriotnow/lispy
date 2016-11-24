@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdarg.h>
 
 /* Some math help here */
 /*
@@ -15,3 +16,10 @@ long power(long base, long exp) {
         return temp * temp;
     }
 }
+
+/* WIP - need to think this through
+long min(int count,...) {
+    va_list ap;
+}
+
+*/
