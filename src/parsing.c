@@ -6,6 +6,9 @@
 #include <editline/readline.h>
 #include <editline/history.h>
 
+#define LASSERT(args, cond, err) \
+    if (!(cond)) { lval_del(args); return lval_err(err); }
+
 
 
 /* Create enum of poss. lval types */
@@ -207,14 +210,37 @@ lval* builtin_op(lval* a, char* op) {
 
 /* list funs */
 lval* builtin_head(lval* a) {
-    // Check Error Conditions
-    if (a->count != 1) {
-        lval_del(a);
-        /* TODO: refactor lval_err to take add'l values, e.g. a->count
-           to compare expected to received in output.
-        */
-        return lval_err("Function 'head' passed too many args")
-    }
+    // Check error conditions
+    LASSERT(a, a->count ==1,
+            "Function 'head' passed too mnay args");
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+            "Function 'head passed incorrect type!'");
+    LASSERT(a, a->cell[0]->count !=0,
+            "Function 'head' passed {}!");
+
+    /* Otherwise take first arg */
+    lval* v = lval_take(a, 0);
+
+    /* Delete tail and return */
+    while (v->count > 1) { lval_del(lval_pop(v, 1)); }
+    return v;
+}
+
+lval* builtin_tail(lval* a) {
+    // Check error conditions
+    LASSERT(a, a->count ==1,
+            "Function 'head' passed too mnay args");
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+            "Function 'head passed incorrect type!'");
+    LASSERT(a, a->cell[0]->count !=0,
+            "Function 'head' passed {}!");
+
+    /* Take the first arg */
+    lval* v = lval_take(a, 0);
+
+    // Delete first elem & return
+    lval_del(lval_pop(v, 0));
+    return v;
 }
 
 lval* lval_eval(lval* v);
