@@ -9,7 +9,7 @@
 
 
 /* Create enum of poss. lval types */
-enum { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR };
+enum { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
 
 /* Define Lisp value type */
 typedef struct lval {
@@ -62,17 +62,26 @@ lval* lval_sexpr(void) {
     return v;
 }
 
+lval* lval_qexpr(void) {
+    lval* v = malloc(sizeof(lval));
+    v->type = LVAL_QEXPR;
+    v->count = 0;
+    v->cell = NULL;
+    return v;
+}
+
 void lval_del(lval* v) {
 
     switch (v->type) {
         /* Nothing special for number type */
-        case LVAL_NUM: break;
+    case LVAL_NUM: break;
 
         /* For Err or Sym free str data */
     case LVAL_ERR: free(v->err); break;
     case LVAL_SYM: free(v->sym); break;
 
-        /* If Sexpr then delete all elements inside */
+        /* If Sexpr or Qexpr then delete all elements inside */
+    case LVAL_QEXPR:
     case LVAL_SEXPR:
         for (int i = 0; i < v->count; i++) {
             lval_del(v->cell[i]);
@@ -139,6 +148,7 @@ void lval_print(lval* v) {
       case LVAL_ERR:   printf("Error: %s", v->err); break;
       case LVAL_SYM:   printf("%s", v->sym); break;
       case LVAL_SEXPR: lval_expr_print(v, '(', ')'); break;
+      case LVAL_QEXPR: lval_expr_print(v, '{', '}'); break;
     }
 }
 
@@ -251,6 +261,7 @@ lval* lval_read(mpc_ast_t* t) {
     lval* x = NULL;
     if (strcmp(t->tag, ">") == 0) { x = lval_sexpr(); }
     if (strstr(t->tag, "sexpr"))  { x = lval_sexpr(); }
+    if (strstr(t->tag, "qexpr"))  { x = lval_qexpr(); }
 
     /* Fill this list with any valid expression contained within */
     for (int i = 0; i < t->children_num; i++) {
@@ -271,19 +282,21 @@ int main(int argc, char** argv) {
     mpc_parser_t* Number    = mpc_new("number");
     mpc_parser_t* Symbol    = mpc_new("symbol");
     mpc_parser_t* Sexpr     = mpc_new("sexpr");
+    mpc_parser_t* Qexpr     = mpc_new("qexpr");
     mpc_parser_t* Expr      = mpc_new("expr");
     mpc_parser_t* Lispy     = mpc_new("lispy");
 
     /*Define them with the following language */
     mpca_lang(MPCA_LANG_DEFAULT,
-    "                                                   \
-     number   : /-?[0-9]+/ ;                            \
-     symbol : '+' | '-' | '*' | '/' | '%' | '^';      \
-     sexpr    : '(' <expr>* ')' ;                       \
-     expr     : <number> | <symbol> | <sexpr>;          \
-     lispy    : /^/ <expr>* /$/ ;                       \
+    "                                                     \
+     number   : /-?[0-9]+/ ;                              \
+     symbol   : '+' | '-' | '*' | '/' | '%' | '^';        \
+     sexpr    : '(' <expr>* ')' ;                         \
+     qexpr    : '{' <expr>* '}' ;                         \
+     expr     : <number> | <symbol> | <sexpr> | <qexpr> ; \
+     lispy    : /^/ <expr>* /$/ ;                         \
     ",
-              Number, Symbol, Sexpr, Expr, Lispy);
+              Number, Symbol, Sexpr, Qexpr, Expr, Lispy);
 
     /* Print version and exit info */
     puts("Lispy Version 0.0.5");
@@ -316,6 +329,6 @@ int main(int argc, char** argv) {
     }
 
     /* Undef and delete parsers */
-    mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Lispy);
+    mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Lispy);
     return 0;
 }
