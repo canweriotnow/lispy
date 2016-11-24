@@ -243,7 +243,66 @@ lval* builtin_tail(lval* a) {
     return v;
 }
 
+lval* builtin_list(lval* a) {
+    a->type = LVAL_QEXPR;
+    return a;
+}
+
 lval* lval_eval(lval* v);
+
+lval* builtin_eval(lval* a) {
+    LASSERT(a, a->count == 1,
+            "Function 'eval' passed too many arguments");
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+            "Function 'eval' passed incorrect type!'");
+
+    lval* x = lval_take(a, 0);
+    x->type = LVAL_SEXPR;
+    return lval_eval(x);
+}
+
+lval* lval_join(lval* x, lval* y) {
+
+    /* For each cell in 'y' add it to 'x' */
+    while (y->count) {
+        x = lval_add(x, lval_pop(y, 0));
+    }
+
+    lval_del(y);
+    return x;
+}
+
+lval* builtin_join(lval* a) {
+
+    for (int i = 0; i < a->count; i++) {
+        LASSERT(a, a->cell[i]->type == LVAL_QEXPR,
+            "Function 'join' passed incorrect type.")
+    }
+
+    lval* x = lval_pop(a, 0);
+
+    while (a->count) {
+        x = lval_join(x, lval_pop(a, 0));
+    }
+
+    lval_del(a);
+    return x;
+}
+
+lval* builtin(lval* a, char* func) {
+    if (strcmp("list", func) == 0 )   { return builtin_list(a); }
+    if (strcmp("head", func) == 0 )   { return builtin_head(a); }
+    if (strcmp("tail", func) == 0 )   { return builtin_tail(a); }
+    if (strcmp("join", func) == 0 )   { return builtin_join(a); }
+    if (strcmp("eval", func) == 0 )   { return builtin_eval(a); }
+    if (strstr("+-*/%^", func) == 0 ) { return builtin_op(a, func); }
+
+    lval_del(a);
+    return lval_err("Unknown function!");
+
+}
+
+
 
 lval* lval_eval_sexpr(lval* v) {
 
@@ -271,7 +330,7 @@ lval* lval_eval_sexpr(lval* v) {
     }
 
     /* Call builtin with operator */
-    lval* result = builtin_op(v, f->sym);
+    lval* result = builtin(v, f->sym);
     lval_del(f);
     return result;
 }
