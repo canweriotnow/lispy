@@ -205,6 +205,18 @@ lval* builtin_op(lval* a, char* op) {
     return x;
 }
 
+/* list funs */
+lval* builtin_head(lval* a) {
+    // Check Error Conditions
+    if (a->count != 1) {
+        lval_del(a);
+        /* TODO: refactor lval_err to take add'l values, e.g. a->count
+           to compare expected to received in output.
+        */
+        return lval_err("Function 'head' passed too many args")
+    }
+}
+
 lval* lval_eval(lval* v);
 
 lval* lval_eval_sexpr(lval* v) {
