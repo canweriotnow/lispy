@@ -334,7 +334,7 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
     return x;
 }
 
-/* list funs */
+/* Builtin List Functions */
 lval* builtin_head(lenv* e, lval* a) {
     // Check error conditions
     LASSERT(a, a->count ==1,
@@ -422,6 +422,8 @@ lval* builtin_len(lenv* e, lval* a) {
     return x;
 }
 
+/* Builtin Math Functions */
+
 lval* builtin_add(lenv* e, lval* a) {
     return builtin_op(e, a, "+");
 }
@@ -453,6 +455,35 @@ void lenv_add_builtin(lenv* e, char* name, lbuiltin func) {
     lval_del(k); lval_del(v);
 }
 
+/* Builtin Variable Functions */
+
+lval* builtin_def(lenv* e, lval* a) {
+    LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+            "Function 'def' passed incorrect type!");
+
+    /* first arg is symbol list */
+    lval* syms = a->cell[0];
+
+    /* Ensure all list elements are symbols */
+    for (int i = 0; i < syms->count; i++) {
+        LASSERT(a, syms->cell[i]->type == LVAL_SYM,
+                "Function 'def' cannot define non-symbol");
+    }
+
+    // Check correct number of symbols and values
+    LASSERT(a, syms->count == a->count-1,
+        "Function 'def' cannot define incorrect "
+            "number of values to symbols");
+
+    /* Assign copies of values to symbols */
+    for (int i = 0; i < syms->count; i++) {
+        lenv_put(e, syms->cell[i], a->cell[i+1]);
+    }
+
+    lval_del(a);
+    return lval_sexpr();
+}
+
 void lenv_add_builtins(lenv* e) {
     /* List Function */
     lenv_add_builtin(e, "list", builtin_list);
@@ -469,6 +500,9 @@ void lenv_add_builtins(lenv* e) {
     lenv_add_builtin(e, "/", builtin_div);
     lenv_add_builtin(e, "%", builtin_mod);
     lenv_add_builtin(e, "^", builtin_pow);
+
+    /* Variable Functions */
+    lenv_add_builtin(e, "def", builtin_def);
 }
 
 
